@@ -25,11 +25,12 @@ QUERY = """SELECT
     *
     FROM lots
     where {} = ?
-    ORDER BY id ASC
+    ORDER BY random()
     LIMIT 1;
 """
 
 SVAPI = "https://maps.googleapis.com/maps/api/streetview"
+SVAPIMETADATA = "https://maps.googleapis.com/maps/api/streetview/metadata"
 GCAPI = "https://maps.googleapis.com/maps/api/geocode/json"
 
 
@@ -48,8 +49,8 @@ class EveryLot(object):
         self.logger = kwargs.get('logger', logging.getLogger('everylot'))
 
         # set address format for fetching from DB
-        self.search_format = search_format or '{address}, {city} {state}'
-        self.print_format = print_format or '{address}'
+        self.search_format = search_format or '{address}, {city} {state} {zip5}'
+        self.print_format = print_format or '{name}: {address}, {city} {state} {zip5}-{zip4}'
 
         self.logger.debug('searching google sv with %s', self.search_format)
         self.logger.debug('posting with %s', self.print_format)
@@ -114,6 +115,19 @@ class EveryLot(object):
 
         sv.seek(0)
         return sv
+
+    def get_streetview_metadata(self, key):
+        # check if location returns no imagery from api
+        params = {
+            "location": self.streetviewable_location(key),
+            "key": key
+        }
+        r = requests.get(SVAPIMETADATA, params=params)
+        md = r.json()
+        if(md['status'] == 'OK'):
+            return md['pano_id']
+        else:
+            return False
 
     def streetviewable_location(self, key):
         '''
@@ -191,4 +205,8 @@ class EveryLot(object):
 
     def mark_as_tweeted(self, status_id):
         self.conn.execute("UPDATE lots SET tweeted = ? WHERE id = ?", (status_id, self.lot['id'],))
+        self.conn.commit()
+
+    def mark_as_no_imagery(self):
+        self.conn.execute("UPDATE lots SET tweeted = 1 WHERE id = ?", (self.lot['id'],))
         self.conn.commit()

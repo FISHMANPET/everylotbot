@@ -23,8 +23,8 @@ from .everylot import EveryLot
 
 def main():
     parser = argparse.ArgumentParser(description='every lot twitter bot')
-    parser.add_argument('screen_name', metavar='SCREEN_NAME', type=str, help='Twitter screen name (without @)')
-    parser.add_argument('database', metavar='DATABASE', type=str, help='path to SQLite lots database')
+    parser.add_argument('screen_name', metavar='SCREEN_NAME', type=str, help='Twitter screen name (without @)', nargs='?', const=1, default='everylot_usps')
+    parser.add_argument('database', metavar='DATABASE', type=str, help='path to SQLite lots database', nargs='?', const=1, default='lots.db')
     parser.add_argument('--id', type=str, default=None, help='tweet the entry in the lots table with this id')
     parser.add_argument('-s', '--search-format', type=str, default=None, metavar='STRING',
                         help='Python format string use for searching Google')
@@ -48,8 +48,18 @@ def main():
         logger.error('No lot found')
         return
 
-    logger.debug('%s addresss: %s zip: %s', el.lot['id'], el.lot.get('address'), el.lot.get('zip'))
+    logger.debug('%s addresss: %s zip: %s', el.lot['id'], el.lot.get('address'), el.lot.get('zip5'))
     logger.debug('db location %s,%s', el.lot['lat'], el.lot['lon'])
+
+    # for now, if it doesn't have imagery, we're gonna just mark it in the db
+    # as "tweeted = 1" skip the process and give me
+    # a chance to troubleshoot!
+
+    metadata = el.get_streetview_metadata(api.config['streetview'])
+    if metadata is False:
+        logger.error("No imagery going on here :(")
+        el.mark_as_no_imagery()
+        main()
 
     # Get the streetview image and upload it
     # ("sv.jpg" is a dummy value, since filename is a required parameter).
@@ -68,6 +78,9 @@ def main():
             el.mark_as_tweeted(status.id)
         except AttributeError:
             el.mark_as_tweeted('1')
+
+def find_lot(args, api):
+
 
 if __name__ == '__main__':
     main()
