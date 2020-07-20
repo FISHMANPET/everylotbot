@@ -66,6 +66,7 @@ def find_lot(args, api, logger):
             return
         else:
             find_lot(args, api, logger)
+            return
 
     # Get the streetview image and upload it
     # ("sv.jpg" is a dummy value, since filename is a required parameter).
