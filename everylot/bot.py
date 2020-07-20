@@ -35,9 +35,12 @@ def main():
     args = parser.parse_args()
     api = tbu.api.API(args)
 
+    logging.basicConfig(filename='%s.log' % args.screen_name)
     logger = logging.getLogger(args.screen_name)
     logger.debug('everylot starting with %s, %s', args.screen_name, args.database)
+    find_lot(args, api, logger)
 
+def find_lot(args, api, logger):
     el = EveryLot(args.database,
                   logger=logger,
                   print_format=args.print_format,
@@ -59,7 +62,10 @@ def main():
     if metadata is False:
         logger.error("No imagery going on here :(")
         el.mark_as_no_imagery()
-        main()
+        if args.id:
+            return
+        else:
+            find_lot(args, api, logger)
 
     # Get the streetview image and upload it
     # ("sv.jpg" is a dummy value, since filename is a required parameter).
@@ -78,9 +84,6 @@ def main():
             el.mark_as_tweeted(status.id)
         except AttributeError:
             el.mark_as_tweeted('1')
-
-def find_lot(args, api):
-
 
 if __name__ == '__main__':
     main()
