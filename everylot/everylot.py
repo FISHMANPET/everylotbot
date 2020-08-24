@@ -72,7 +72,7 @@ class EveryLot(object):
 
     def aim_camera(self):
         '''Set field-of-view and pitch'''
-        fov, pitch = 90, -10
+        fov, pitch = 60, -10
         return fov, pitch
 
     def get_streetview_image(self, key):
