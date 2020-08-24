@@ -23,7 +23,7 @@ import requests
 
 QUERY = """SELECT
     *
-    FROM lots
+    FROM stops
     where {} = ?
     ORDER BY random()
     LIMIT 1;
@@ -37,7 +37,7 @@ GCAPI = "https://maps.googleapis.com/maps/api/geocode/json"
 class EveryLot(object):
 
     def __init__(self, database,
-                 search_format=None,
+                 #search_format=None,
                  print_format=None,
                  id_=None,
                  **kwargs):
@@ -49,10 +49,10 @@ class EveryLot(object):
         self.logger = kwargs.get('logger', logging.getLogger('everylot'))
 
         # set address format for fetching from DB
-        self.search_format = search_format or '{address}, {city} {state} {zip5}'
+        #self.search_format = search_format or '{address}, {city} {state} {zip5}'
         self.print_format = print_format or '{name}: {address}, {city} {state} {zip5}-{zip4}'
 
-        self.logger.debug('searching google sv with %s', self.search_format)
+        #self.logger.debug('searching google sv with %s', self.search_format)
         self.logger.debug('posting with %s', self.print_format)
 
         self.conn = sqlite3.connect(database)
@@ -70,30 +70,7 @@ class EveryLot(object):
 
     def aim_camera(self):
         '''Set field-of-view and pitch'''
-        fov, pitch = 65, 10
-        try:
-            floors = float(self.lot.get('floors', 0)) or 2
-        except TypeError:
-            floors = 2
-
-        if floors == 3:
-            fov = 72
-
-        if floors == 4:
-            fov, pitch = 76, 15
-
-        if floors >= 5:
-            fov, pitch = 81, 20
-
-        if floors == 6:
-            fov = 86
-
-        if floors >= 8:
-            fov, pitch = 90, 25
-
-        if floors >= 10:
-            fov, pitch = 90, 30
-
+        fov, pitch = 90, -10
         return fov, pitch
 
     def get_streetview_image(self, key):
@@ -134,57 +111,59 @@ class EveryLot(object):
         Check if google-geocoded address is nearby or not. if not, use the lat/lon
         '''
         # skip this step if there's no address, we'll just use the lat/lon to fetch the SV.
-        try:
-            address = self.search_format.format(**self.lot)
 
-        except KeyError:
-            self.logger.warn('Could not find street address, using lat/lon')
-            return '{},{}'.format(self.lot['lat'], self.lot['lon'])
+        return '{},{}'.format(self.lot['lat'], self.lot['lon'])
+        # try:
+        #     address = self.search_format.format(**self.lot)
 
-        # bounds in (miny minx maxy maxx) aka (s w n e)
-        try:
-            d = 0.007
-            minpt = self.lot['lat'] - d, self.lot['lon'] - d
-            maxpt = self.lot['lat'] + d, self.lot['lon'] + d
+        # except KeyError:
+        #     self.logger.warn('Could not find street address, using lat/lon')
+        #     return '{},{}'.format(self.lot['lat'], self.lot['lon'])
 
-        except KeyError:
-            self.logger.info('No lat/lon coordinates. Using address naively.')
-            return address
+        # # bounds in (miny minx maxy maxx) aka (s w n e)
+        # try:
+        #     d = 0.007
+        #     minpt = self.lot['lat'] - d, self.lot['lon'] - d
+        #     maxpt = self.lot['lat'] + d, self.lot['lon'] + d
 
-        params = {
-            "address": address,
-            "key": key,
-        }
+        # except KeyError:
+        #     self.logger.info('No lat/lon coordinates. Using address naively.')
+        #     return address
 
-        self.logger.debug('geocoding @ google')
+        # params = {
+        #     "address": address,
+        #     "key": key,
+        # }
 
-        try:
-            r = requests.get(GCAPI, params=params)
-            self.logger.debug(r.url)
+        # self.logger.debug('geocoding @ google')
 
-            if r.status_code != 200:
-                raise ValueError('bad response from google geocode: %s' % r.status_code)
+        # try:
+        #     r = requests.get(GCAPI, params=params)
+        #     self.logger.debug(r.url)
 
-            loc = r.json()['results'][0]['geometry']['location']
+        #     if r.status_code != 200:
+        #         raise ValueError('bad response from google geocode: %s' % r.status_code)
 
-            # Cry foul if we're outside of the bounding box
-            outside_comfort_zone = any((
-                loc['lng'] < minpt[1],
-                loc['lng'] > maxpt[1],
-                loc['lat'] > maxpt[0],
-                loc['lat'] < minpt[0]
-            ))
+        #     loc = r.json()['results'][0]['geometry']['location']
 
-            if outside_comfort_zone:
-                raise ValueError('google geocode puts us outside outside our comfort zone')
+        #     # Cry foul if we're outside of the bounding box
+        #     outside_comfort_zone = any((
+        #         loc['lng'] < minpt[1],
+        #         loc['lng'] > maxpt[1],
+        #         loc['lat'] > maxpt[0],
+        #         loc['lat'] < minpt[0]
+        #     ))
 
-            self.logger.debug('using db address for sv')
-            return address
+        #     if outside_comfort_zone:
+        #         raise ValueError('google geocode puts us outside outside our comfort zone')
 
-        except Exception as e:
-            self.logger.info(e)
-            self.logger.info('location with db coords: %s, %s', self.lot['lat'], self.lot['lon'])
-            return '{},{}'.format(self.lot['lat'], self.lot['lon'])
+        #     self.logger.debug('using db address for sv')
+        #     return address
+
+        # except Exception as e:
+        #     self.logger.info(e)
+        #     self.logger.info('location with db coords: %s, %s', self.lot['lat'], self.lot['lon'])
+        #     return '{},{}'.format(self.lot['lat'], self.lot['lon'])
 
     def compose(self, media_id_string):
         '''

@@ -51,22 +51,22 @@ def find_lot(args, api, logger):
         logger.error('No lot found')
         return
 
-    logger.debug('%s addresss: %s zip: %s', el.lot['id'], el.lot.get('address'), el.lot.get('zip5'))
+    #logger.debug('%s addresss: %s zip: %s', el.lot['id'], el.lot.get('address'), el.lot.get('zip5'))
     logger.debug('db location %s,%s', el.lot['lat'], el.lot['lon'])
 
     # for now, if it doesn't have imagery, we're gonna just mark it in the db
     # as "tweeted = 1" skip the process and give me
     # a chance to troubleshoot!
 
-    metadata = el.get_streetview_metadata(api.config['streetview'])
-    if metadata is False:
-        logger.error("No imagery going on here :(")
-        el.mark_as_no_imagery()
-        if args.id:
-            return
-        else:
-            find_lot(args, api, logger)
-            return
+    # metadata = el.get_streetview_metadata(api.config['streetview'])
+    # if metadata is False:
+    #     logger.error("No imagery going on here :(")
+    #     el.mark_as_no_imagery()
+    #     if args.id:
+    #         return
+    #     else:
+    #         find_lot(args, api, logger)
+    #         return
 
     # Get the streetview image and upload it
     # ("sv.jpg" is a dummy value, since filename is a required parameter).
