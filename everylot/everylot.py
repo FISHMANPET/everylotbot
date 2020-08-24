@@ -50,7 +50,8 @@ class EveryLot(object):
 
         # set address format for fetching from DB
         #self.search_format = search_format or '{address}, {city} {state} {zip5}'
-        self.print_format = print_format or '{name}: {address}, {city} {state} {zip5}-{zip4}'
+        self.print_format = print_format or 'Stop #{id}: {site_on} at {site_at}, {city}'
+        self.print_format2 = 'Stop #{id}: {site_on}, {city}'
 
         #self.logger.debug('searching google sv with %s', self.search_format)
         self.logger.debug('posting with %s', self.print_format)
@@ -67,6 +68,7 @@ class EveryLot(object):
         curs = self.conn.execute(QUERY.format(field), (value,))
         keys = [c[0] for c in curs.description]
         self.lot = dict(zip(keys, curs.fetchone()))
+        self.lot['city'] = self.lot['city'].title()
 
     def aim_camera(self):
         '''Set field-of-view and pitch'''
@@ -173,7 +175,11 @@ class EveryLot(object):
         self.logger.debug("media_id_string: %s", media_id_string)
 
         # Let missing addresses play through here, let the program leak out a bit
-        status = self.print_format.format(**self.lot)
+        if self.lot['site_at'].strip() == '':
+            status = self.print_format2.format(**self.lot)
+        else:
+            status = self.print_format.format(**self.lot)
+
 
         return {
             "status": status,
@@ -183,9 +189,9 @@ class EveryLot(object):
         }
 
     def mark_as_tweeted(self, status_id):
-        self.conn.execute("UPDATE lots SET tweeted = ? WHERE id = ?", (status_id, self.lot['id'],))
+        self.conn.execute("UPDATE stops SET tweeted = ? WHERE id = ?", (status_id, self.lot['id'],))
         self.conn.commit()
 
     def mark_as_no_imagery(self):
-        self.conn.execute("UPDATE lots SET tweeted = 1 WHERE id = ?", (self.lot['id'],))
+        self.conn.execute("UPDATE stops SET tweeted = 1 WHERE id = ?", (self.lot['id'],))
         self.conn.commit()
