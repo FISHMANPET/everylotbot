@@ -64,7 +64,7 @@ foreach ($i in $range) {
                     }
                     $found = $true
                 }
-            } catch {
+            } catch [System.Net.WebException] {
                 start-sleep -seconds 10
                 $found = $false
             }
