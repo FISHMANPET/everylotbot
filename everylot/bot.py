@@ -97,7 +97,7 @@ def find_lot(args, client: Client, logger):
             image_alt='Street View image of post office',
         )
         try:
-            el.mark_as_posted(status.id)
+            el.mark_as_posted(status.uri)
         except AttributeError:
             el.mark_as_posted('1')
 
