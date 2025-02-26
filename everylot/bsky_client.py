@@ -1,7 +1,7 @@
 from atproto import Client, Session, SessionEvent
 import logging
 
-logging.basicConfig('everylot_usps.log')
+logging.basicConfig(filename='everylot_usps.log')
 logger = logging.getLogger('bsky_client')
 logger.setLevel(logging.INFO)
 
