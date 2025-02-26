@@ -16,9 +16,12 @@
 
 import argparse
 import logging
-import twitter_bot_utils as tbu
-from . import __version__ as version
-from .everylot import EveryLot
+# import twitter_bot_utils as tbu
+# from . import __version__ as version
+from everylot import EveryLot
+from bsky_client import init_client
+from atproto import Client
+
 
 
 def main():
@@ -30,17 +33,20 @@ def main():
                         help='Python format string use for searching Google')
     parser.add_argument('-p', '--print-format', type=str, default=None, metavar='STRING',
                         help='Python format string use for poster to Twitter')
-    tbu.args.add_default_args(parser, version=version, include=('config', 'dry-run', 'verbose', 'quiet'))
+    parser.add_argument("-n", "--dry-run", action="store_true", help="Don't actually do anything")
+    # tbu.args.add_default_args(parser, version=version, include=('config', 'dry-run', 'verbose', 'quiet'))
 
     args = parser.parse_args()
-    api = tbu.api.API(args)
+    # api = tbu.api.API(args)
+    client = init_client()
 
     logging.basicConfig(filename='%s.log' % args.screen_name)
     logger = logging.getLogger(args.screen_name)
+    logger.setLevel(logging.INFO)
     logger.debug('everylot starting with %s, %s', args.screen_name, args.database)
-    find_lot(args, api, logger)
+    find_lot(args, client, logger)
 
-def find_lot(args, api, logger):
+def find_lot(args, client: Client, logger):
     el = EveryLot(args.database,
                   logger=logger,
                   print_format=args.print_format,
@@ -55,36 +61,46 @@ def find_lot(args, api, logger):
     logger.debug('db location %s,%s', el.lot['lat'], el.lot['lon'])
 
     # for now, if it doesn't have imagery, we're gonna just mark it in the db
-    # as "tweeted = 1" skip the process and give me
+    # as "posted = 1" skip the process and give me
     # a chance to troubleshoot!
+    with open('streetview.txt') as f:
+        sv_key = f.read()
 
-    metadata = el.get_streetview_metadata(api.config['streetview'])
-    if metadata is False:
-        logger.error("No imagery going on here :(")
-        el.mark_as_no_imagery()
-        if args.id:
-            return
-        else:
-            find_lot(args, api, logger)
-            return
+    # metadata = el.get_streetview_metadata(sv_key)
+    # if metadata is False:
+    #     logger.error("No imagery going on here :(")
+    #     el.mark_as_no_imagery()
+    #     if args.id:
+    #         return
+    #     else:
+    #         find_lot(args, api, logger)
+    #         return
 
     # Get the streetview image and upload it
     # ("sv.jpg" is a dummy value, since filename is a required parameter).
-    image = el.get_streetview_image(api.config['streetview'])
-    media = api.media_upload('sv.jpg', file=image)
+    image = el.get_streetview_image(sv_key)
+    # media = api.media_upload('sv.jpg', file=image)
 
     # compose an update with all the good parameters
     # including the media string.
-    update = el.compose(media.media_id_string)
+    update = el.compose()
     logger.info(update['status'])
+    print(update['status'])
 
     if not args.dry_run:
         logger.debug("posting")
-        status = api.update_status(**update)
+        # status = api.update_status(**update)
+
+
+        status = client.send_image(
+            text=update['status'],
+            image=image,
+            image_alt='Street View image of post office',
+        )
         try:
-            el.mark_as_tweeted(status.id)
+            el.mark_as_posted(status.id)
         except AttributeError:
-            el.mark_as_tweeted('1')
+            el.mark_as_posted('1')
 
 if __name__ == '__main__':
     main()

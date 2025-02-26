@@ -61,7 +61,7 @@ class EveryLot(object):
             field = 'id'
             value = id_
         else:
-            field = 'tweeted'
+            field = 'posted'
             value = 0
 
         curs = self.conn.execute(QUERY.format(field), (value,))
@@ -186,12 +186,12 @@ class EveryLot(object):
             self.logger.info('location with db coords: %s, %s', self.lot['lat'], self.lot['lon'])
             return '{},{}'.format(self.lot['lat'], self.lot['lon'])
 
-    def compose(self, media_id_string):
+    def compose(self):
         '''
         Compose a tweet, including media ids and location info.
         :media_id_string str identifier for an image uploaded to Twitter
         '''
-        self.logger.debug("media_id_string: %s", media_id_string)
+        # self.logger.debug("media_id_string: %s", media_id_string)
 
         # Let missing addresses play through here, let the program leak out a bit
         status = self.print_format.format(**self.lot)
@@ -200,13 +200,13 @@ class EveryLot(object):
             "status": status,
             "lat": self.lot.get('lat', 0.),
             "long": self.lot.get('lon', 0.),
-            "media_ids": [media_id_string]
+            # "media_ids": [media_id_string]
         }
 
-    def mark_as_tweeted(self, status_id):
-        self.conn.execute("UPDATE lots SET tweeted = ? WHERE id = ?", (status_id, self.lot['id'],))
+    def mark_as_posted(self, status_id):
+        self.conn.execute("UPDATE lots SET posted = ? WHERE id = ?", (status_id, self.lot['id'],))
         self.conn.commit()
 
-    def mark_as_no_imagery(self):
-        self.conn.execute("UPDATE lots SET tweeted = 1 WHERE id = ?", (self.lot['id'],))
-        self.conn.commit()
+    # def mark_as_no_imagery(self):
+    #     self.conn.execute("UPDATE lots SET posted = 1 WHERE id = ?", (self.lot['id'],))
+    #     self.conn.commit()
