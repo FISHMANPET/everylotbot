@@ -85,7 +85,6 @@ def find_lot(args, client: Client, logger):
     # including the media string.
     update = el.compose()
     logger.info(update['status'])
-    print(update['status'])
 
     if not args.dry_run:
         logger.debug("posting")

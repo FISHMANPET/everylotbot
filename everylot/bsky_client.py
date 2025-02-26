@@ -1,4 +1,9 @@
-from atproto_client import Client, Session, SessionEvent
+from atproto import Client, Session, SessionEvent
+import logging
+
+logging.basicConfig('everylot_usps.log')
+logger = logging.getLogger('bsky_client')
+logger.setLevel(logging.INFO)
 
 
 def get_session() -> str:
@@ -12,9 +17,9 @@ def save_session(session_string: str) -> None:
 
 
 def on_session_change(event: SessionEvent, session: Session) -> None:
-  print('Session changed:', event, repr(session))
+  logger.debug('Session changed:', event, repr(session))
   if event in (SessionEvent.CREATE, SessionEvent.REFRESH):
-    print('Saving changed session')
+    logger.info('Saving changed session')
     save_session(session.export())
 
 
@@ -22,7 +27,7 @@ def init_client() -> Client:
   client = Client()
   client.on_session_change(on_session_change)
   session_string = get_session()
-  print('Reusing session')
+  logger.debug('Reusing session')
   client.login(session_string=session_string)
 
   return client
