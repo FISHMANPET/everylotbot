@@ -1,4 +1,4 @@
-$type = "offices"
+$type = "boxes"
 $output = "$type.csv"
 $sum = 0
 $locations = @()

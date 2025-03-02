@@ -7,7 +7,7 @@ param (
 $ErrorActionPreference = 'Stop'
 foreach ($i in $range) {
     $offices = [System.Collections.ArrayList]@()
-    $type = "offices"
+    $type = "boxes"
     $log = ".\zip$i.log"
     $csvtemp = ".\$type$i-temp.csv"
     $csv = ".\$type$i.csv"
@@ -137,9 +137,10 @@ foreach ($i in $range) {
                         "x-requested-with"="XMLHttpRequest"
                     } `
                     -ContentType "application/json;charset=UTF-8" `
-                    -Body "{`"requestZipCode`":`"$zipcode`",`"requestType`":`"PO,CPU,VPO`",`"maxDistance`":`"100`",`"requestServices`":`"`",`"requestHours`":`"`"}"
+                    -Body "{`"requestZipCode`":`"$zipcode`",`"requestType`":`"COLLECTIONBOX`",`"maxDistance`":`"100`",`"requestServices`":`"`",`"requestHours`":`"`"}"
                 $locations | Add-Content -Path $log
                 if ($locations.PSObject.properties.name -notcontains 'locations') {
+                    Write-Host $zipcode
                     if ($locations.errorcode -in ('800412df', '800412fd')) {
                         $found = $true
                     } elseif ($locations.psobject.Properties.name -notcontains 'errorcode') {
