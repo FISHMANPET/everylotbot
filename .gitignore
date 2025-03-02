@@ -26,3 +26,4 @@ attempt*/*
 *.log
 session.txt
 streetview.txt
+lots.db
