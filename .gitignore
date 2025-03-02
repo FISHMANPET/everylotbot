@@ -22,3 +22,7 @@ dist
 sqlite-tools-win32-x86-3320300
 bots.yaml
 offices
+attempt*/*
+*.log
+session.txt
+streetview.txt

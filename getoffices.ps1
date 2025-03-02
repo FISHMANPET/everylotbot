@@ -137,7 +137,7 @@ foreach ($i in $range) {
                         "x-requested-with"="XMLHttpRequest"
                     } `
                     -ContentType "application/json;charset=UTF-8" `
-                    -Body "{`"requestZipCode`":`"$zipcode`",`"requestType`":`"PO,CPU,VPO`",`"maxDistance`":`"10`",`"requestServices`":`"`",`"requestHours`":`"`"}"
+                    -Body "{`"requestZipCode`":`"$zipcode`",`"requestType`":`"PO,CPU,VPO`",`"maxDistance`":`"100`",`"requestServices`":`"`",`"requestHours`":`"`"}"
                 $locations | Add-Content -Path $log
                 if ($locations.PSObject.properties.name -notcontains 'locations') {
                     if ($locations.errorcode -in ('800412df', '800412fd')) {
