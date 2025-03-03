@@ -36,32 +36,30 @@ GCAPI = "https://maps.googleapis.com/maps/api/geocode/json"
 
 class EveryLot(object):
 
-    def __init__(self, database,
-                 search_format=None,
-                 print_format=None,
-                 id_=None,
-                 **kwargs):
+    def __init__(
+        self, database, search_format=None, print_format=None, id_=None, **kwargs
+    ):
         """
         An everylot class immediately checks the database for the next available entry,
         or for the passed 'id_'. It stores this data in self.lot.
         :database str file name of database
         """
-        self.logger = kwargs.get('logger', logging.getLogger('everylot'))
+        self.logger = kwargs.get("logger", logging.getLogger("everylot"))
 
         # set address format for fetching from DB
-        self.search_format = search_format or '{address}, {city} {state} {zip5}'
-        self.print_format = print_format or '{name}: {address}, {city} {state} {zip5}-{zip4}'
+        self.search_format = search_format or "{address}, {city} {state} {zip5}"
+        self.print_format = print_format or "{name}: {address}, {city} {state} {zip5}"
 
-        self.logger.debug('searching google sv with %s', self.search_format)
-        self.logger.debug('posting with %s', self.print_format)
+        self.logger.debug("searching google sv with %s", self.search_format)
+        self.logger.debug("posting with %s", self.print_format)
 
         self.conn = sqlite3.connect(database)
 
         if id_:
-            field = 'id'
+            field = "id"
             value = id_
         else:
-            field = 'posted'
+            field = "posted"
             value = 0
 
         curs = self.conn.execute(QUERY.format(field), (value,))
@@ -69,10 +67,10 @@ class EveryLot(object):
         self.lot = dict(zip(keys, curs.fetchone()))
 
     def aim_camera(self):
-        '''Set field-of-view and pitch'''
+        """Set field-of-view and pitch"""
         fov, pitch = 65, 10
         try:
-            floors = float(self.lot.get('floors', 0)) or 2
+            floors = float(self.lot.get("floors", 0)) or 2
         except TypeError:
             floors = 2
 
@@ -97,14 +95,14 @@ class EveryLot(object):
         return fov, pitch
 
     def get_streetview_image(self, key):
-        '''Fetch image from streetview API'''
+        """Fetch image from streetview API"""
         params = {
-            "location": self.streetviewable_location(key),
+            "location": "{},{}".format(self.lot["lat"], self.lot["lon"]),
             "key": key,
-            "size": "1000x1000"
+            "size": "1000x1000",
         }
 
-        params['fov'], params['pitch'] = self.aim_camera()
+        params["fov"], params["pitch"] = self.aim_camera()
 
         r = requests.get(SVAPI, params=params)
         self.logger.debug(r.url)
@@ -118,37 +116,34 @@ class EveryLot(object):
 
     def get_streetview_metadata(self, key):
         # check if location returns no imagery from api
-        params = {
-            "location": self.streetviewable_location(key),
-            "key": key
-        }
+        params = {"location": self.streetviewable_location(key), "key": key}
         r = requests.get(SVAPIMETADATA, params=params)
         md = r.json()
-        if(md['status'] == 'OK'):
-            return md['pano_id']
+        if md["status"] == "OK":
+            return md["pano_id"]
         else:
             return False
 
     def streetviewable_location(self, key):
-        '''
+        """
         Check if google-geocoded address is nearby or not. if not, use the lat/lon
-        '''
+        """
         # skip this step if there's no address, we'll just use the lat/lon to fetch the SV.
         try:
             address = self.search_format.format(**self.lot)
 
         except KeyError:
-            self.logger.warn('Could not find street address, using lat/lon')
-            return '{},{}'.format(self.lot['lat'], self.lot['lon'])
+            self.logger.warn("Could not find street address, using lat/lon")
+            return "{},{}".format(self.lot["lat"], self.lot["lon"])
 
         # bounds in (miny minx maxy maxx) aka (s w n e)
         try:
             d = 0.007
-            minpt = self.lot['lat'] - d, self.lot['lon'] - d
-            maxpt = self.lot['lat'] + d, self.lot['lon'] + d
+            minpt = self.lot["lat"] - d, self.lot["lon"] - d
+            maxpt = self.lot["lat"] + d, self.lot["lon"] + d
 
         except KeyError:
-            self.logger.info('No lat/lon coordinates. Using address naively.')
+            self.logger.info("No lat/lon coordinates. Using address naively.")
             return address
 
         params = {
@@ -156,41 +151,47 @@ class EveryLot(object):
             "key": key,
         }
 
-        self.logger.debug('geocoding @ google')
+        self.logger.debug("geocoding @ google")
 
         try:
             r = requests.get(GCAPI, params=params)
             self.logger.debug(r.url)
 
             if r.status_code != 200:
-                raise ValueError('bad response from google geocode: %s' % r.status_code)
+                raise ValueError("bad response from google geocode: %s" % r.status_code)
 
-            loc = r.json()['results'][0]['geometry']['location']
+            loc = r.json()["results"][0]["geometry"]["location"]
 
             # Cry foul if we're outside of the bounding box
-            outside_comfort_zone = any((
-                loc['lng'] < minpt[1],
-                loc['lng'] > maxpt[1],
-                loc['lat'] > maxpt[0],
-                loc['lat'] < minpt[0]
-            ))
+            outside_comfort_zone = any(
+                (
+                    loc["lng"] < minpt[1],
+                    loc["lng"] > maxpt[1],
+                    loc["lat"] > maxpt[0],
+                    loc["lat"] < minpt[0],
+                )
+            )
 
             if outside_comfort_zone:
-                raise ValueError('google geocode puts us outside outside our comfort zone')
+                raise ValueError(
+                    "google geocode puts us outside outside our comfort zone"
+                )
 
-            self.logger.debug('using db address for sv')
+            self.logger.debug("using db address for sv")
             return address
 
         except Exception as e:
             self.logger.info(e)
-            self.logger.info('location with db coords: %s, %s', self.lot['lat'], self.lot['lon'])
-            return '{},{}'.format(self.lot['lat'], self.lot['lon'])
+            self.logger.info(
+                "location with db coords: %s, %s", self.lot["lat"], self.lot["lon"]
+            )
+            return "{},{}".format(self.lot["lat"], self.lot["lon"])
 
     def compose(self):
-        '''
+        """
         Compose a tweet, including media ids and location info.
         :media_id_string str identifier for an image uploaded to Twitter
-        '''
+        """
         # self.logger.debug("media_id_string: %s", media_id_string)
 
         # Let missing addresses play through here, let the program leak out a bit
@@ -198,13 +199,19 @@ class EveryLot(object):
 
         return {
             "status": status,
-            "lat": self.lot.get('lat', 0.),
-            "long": self.lot.get('lon', 0.),
+            "lat": self.lot.get("lat", 0.0),
+            "long": self.lot.get("lon", 0.0),
             # "media_ids": [media_id_string]
         }
 
     def mark_as_posted(self, status_id):
-        self.conn.execute("UPDATE lots SET posted = ? WHERE id = ?", (status_id, self.lot['id'],))
+        self.conn.execute(
+            "UPDATE lots SET posted = ? WHERE id = ?",
+            (
+                status_id,
+                self.lot["id"],
+            ),
+        )
         self.conn.commit()
 
     # def mark_as_no_imagery(self):
