@@ -156,7 +156,9 @@ def find_lots(args, client: Client, logger):
             logger.error("Update too long, trying again")
             find_lots(args, client, logger)
 
-        image_alts = [f"Street view image of {el.lot["name"].title()}" for el in els]
+        image_alts = [
+            "Street view image of {}".format(el.lot["name"].title()) for el in els
+        ]
 
         status = client.send_images(
             text=update,
